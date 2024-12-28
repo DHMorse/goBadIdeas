@@ -49,7 +49,7 @@ func NewGame() *Game {
 		onGround:    true,
 		facingRight: true,
 		// get the users montior refresh rate
-		frameLimit: ebiten.MaxTPS(),
+		frameLimit: ebiten.TPS(),
 	}
 }
 
@@ -181,8 +181,8 @@ func main() {
 	game := NewGame()
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Basic Game with Gravity and Jumping")
-	ebiten.SetMaxTPS(game.frameLimit) // Set the game loop to run at the monitor's refresh rate
-	println("Monitor refresh rate:", ebiten.MaxTPS())
+	ebiten.SetTPS(game.frameLimit) // Set the game loop to run at the monitor's refresh rate
+	println("Monitor refresh rate:", ebiten.TPS())
 	if err := ebiten.RunGame(game); err != nil {
 		panic(err)
 	}
