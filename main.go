@@ -2,7 +2,6 @@ package main
 
 import (
 	"image/color"
-	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -19,10 +18,6 @@ const (
 	moveSpeed      = 5.0
 	swordWidth     = 80
 	swordHeight    = 20
-
-	// New constants for sword swinging
-	swingDuration = 20  // frames
-	swingAngleMax = 120 // degrees
 )
 
 type Game struct {
@@ -34,9 +29,11 @@ type Game struct {
 	facingRight bool
 
 	// New variables for sword swinging
-	swinging      bool
-	swingFrame    int
-	swingCooldown int
+	swinging           bool
+	swingDuration      int
+	swingCooldown      int
+	swingCooldownFrame int
+	swingFrame         int
 
 	frameLimit int
 }
@@ -48,6 +45,14 @@ func NewGame() *Game {
 		platformY:   screenHeight - platformHeight,
 		onGround:    true,
 		facingRight: true,
+
+		// New variables for sword swinging
+		swinging:           false,
+		swingDuration:      ebiten.TPS() / 4, // 0.25 seconds
+		swingCooldown:      ebiten.TPS() / 4, // 0.25 seconds
+		swingCooldownFrame: 0,
+		swingFrame:         0,
+
 		// get the users montior refresh rate
 		frameLimit: ebiten.TPS(),
 	}
@@ -71,7 +76,7 @@ func (g *Game) Update() error {
 	}
 
 	// Sword swing
-	if ebiten.IsKeyPressed(ebiten.KeyX) && !g.swinging && g.swingCooldown == 0 {
+	if ebiten.IsKeyPressed(ebiten.KeyX) && !g.swinging && g.swingCooldownFrame == 0 {
 		g.swinging = true
 		g.swingFrame = 0
 	}
@@ -79,18 +84,15 @@ func (g *Game) Update() error {
 	// Update swing animation
 	if g.swinging {
 		g.swingFrame++
-		if g.swingFrame >= swingDuration {
+		if g.swingFrame >= g.swingDuration {
 			g.swinging = false
-			if g.frameLimit == 60 {
-				g.swingCooldown = 15 // 30 Frames at 60fps == 0.25 seconds
-			}
-			//g.swingCooldown = 30 // Add a small cooldown between swings
+			g.swingCooldownFrame = g.swingDuration
 		}
 	}
 
 	// Update cooldown
-	if g.swingCooldown > 0 {
-		g.swingCooldown--
+	if g.swingCooldownFrame > 0 {
+		g.swingCooldownFrame--
 	}
 
 	// Gravity
@@ -120,53 +122,37 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{0, 0, 0, 255})
 
 	// Draw the player
-	vector.DrawFilledRect(screen, float32(g.playerX), float32(g.playerY), playerWidth, playerHeight, color.RGBA{0, 255, 0, 255}, true)
+	vector.DrawFilledRect(screen,
+		float32(g.playerX),
+		float32(g.playerY),
+		playerWidth,
+		playerHeight,
+		color.RGBA{0, 255, 0, 255},
+		true)
 
 	// Draw the sword with swing animation
 	if g.swinging {
-		// Calculate swing angle based on frame
-		progress := float64(g.swingFrame) / float64(swingDuration)
-		// Use sine function for smooth animation
-		swingAngle := math.Sin(progress*math.Pi) * swingAngleMax
-
-		// Convert angle to radians
-		angleRad := swingAngle * math.Pi / 180.0
-
-		// Calculate sword position
-		var swordCenterX, swordCenterY float32
 		if g.facingRight {
-			// Rotate around the right side of the player
-			angleRad = -angleRad // Flip angle for right-facing
-			swordCenterX = float32(g.playerX + playerWidth)
-			swordCenterY = float32(g.playerY + playerHeight/2)
+			vector.DrawFilledRect(
+				screen,
+				float32(g.playerX)+playerWidth,
+				float32(g.playerY)+playerHeight/2-swordHeight/2,
+				swordWidth,
+				swordHeight,
+				color.RGBA{255, 0, 0, 255},
+				true,
+			)
 		} else {
-			// Rotate around the left side of the player
-			swordCenterX = float32(g.playerX)
-			swordCenterY = float32(g.playerY + playerHeight/2)
+			vector.DrawFilledRect(
+				screen,
+				float32(g.playerX)-swordWidth,
+				float32(g.playerY)+playerHeight/2-swordHeight/2,
+				swordWidth,
+				swordHeight,
+				color.RGBA{255, 0, 0, 255},
+				true,
+			)
 		}
-
-		// Calculate rotated position
-		cosA := float32(math.Cos(angleRad))
-		sinA := float32(math.Sin(angleRad))
-
-		// Calculate the offset to center the sword
-		offsetX := -swordHeight / 2
-		if !g.facingRight {
-			offsetX = -swordWidth
-		}
-
-		// Draw rotated sword by rotating position around the sword's base
-		x := swordCenterX + float32(offsetX)*cosA
-		y := swordCenterY + float32(offsetX)*sinA
-		vector.DrawFilledRect(
-			screen,
-			x,
-			y,
-			swordWidth,
-			swordHeight,
-			color.RGBA{255, 0, 0, 255},
-			true,
-		)
 	}
 
 	// Draw the platform
@@ -178,12 +164,14 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	game := NewGame()
+	g := NewGame()
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Basic Game with Gravity and Jumping")
-	ebiten.SetTPS(game.frameLimit) // Set the game loop to run at the monitor's refresh rate
-	println("Monitor refresh rate:", ebiten.TPS())
-	if err := ebiten.RunGame(game); err != nil {
+	ebiten.SetTPS(g.frameLimit) // Set the game loop to run at the monitor's refresh rate
+	println("Monitor refresh rate:", ebiten.TPS(), "Hz")
+	println("Swing Duration:", g.swingDuration, "frames")
+	println("Swing Cooldown:", g.swingCooldown, "frames")
+	if err := ebiten.RunGame(g); err != nil {
 		panic(err)
 	}
 }
