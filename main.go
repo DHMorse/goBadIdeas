@@ -1,9 +1,8 @@
 package main
 
 import (
-	"image/color"
-
 	"fmt"
+	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -23,6 +22,11 @@ const (
 	minJumpSpeed   = -3.0 // Minimum jump speed when button is released quickly
 )
 
+type GameState struct {
+	MainMenu bool
+	Playing  bool
+}
+
 type Game struct {
 	playerX            float64
 	playerY            float64
@@ -41,6 +45,7 @@ type Game struct {
 	swingCooldownFrame int
 	swingFrame         int
 	frameLimit         int
+	state              GameState
 }
 
 func NewGame() *Game {
@@ -61,10 +66,23 @@ func NewGame() *Game {
 		swingCooldownFrame: 0,
 		swingFrame:         0,
 		frameLimit:         ebiten.TPS(),
+		state: GameState{
+			MainMenu: true,
+			Playing:  false,
+		},
 	}
 }
 
 func (g *Game) Update() error {
+	if g.state.MainMenu {
+		// Handle main menu logic
+		if ebiten.IsKeyPressed(ebiten.KeyEnter) {
+			g.state.MainMenu = false
+			g.state.Playing = true
+		}
+		return nil
+	}
+
 	// Horizontal movement
 	if ebiten.IsKeyPressed(ebiten.KeyRight) {
 		g.playerX += moveSpeed
@@ -152,9 +170,14 @@ func (g *Game) Update() error {
 	return nil
 }
 
-// Draw and Layout functions remain unchanged
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{0, 0, 0, 255})
+
+	if g.state.MainMenu {
+		// Draw main menu
+		DrawMainMenu(screen, g)
+		return
+	}
 
 	vector.DrawFilledRect(screen,
 		float32(g.playerX),
