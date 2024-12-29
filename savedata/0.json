@@ -1,0 +1,14 @@
+{
+    "player": {
+        "name": "Player",
+        "level": 1,
+        "exp": 0,
+        "gold": 0,
+        "inventory": {
+            "items": {
+                "sword": 1,
+                "shield": 1
+            }
+        }
+    }
+}

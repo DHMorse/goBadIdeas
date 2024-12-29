@@ -3,6 +3,8 @@ package main
 import (
 	"image/color"
 
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
@@ -194,6 +196,18 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
+	jsonFilePath := "savedata/0.json"     // Replace with your JSON file path
+	binaryFilePath := "savedata/0"        // Replace with your desired binary file path
+	newFilePath := "savedata/output.json" // Replace with your desired JSON file path
+
+	if err := jsonToBinary(jsonFilePath, binaryFilePath); err != nil {
+		fmt.Printf("An error occurred: %v\n", err)
+	}
+
+	if err := binaryToJson(binaryFilePath, newFilePath); err != nil {
+		fmt.Printf("An error occurred: %v\n", err)
+	}
+
 	g := NewGame()
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Basic Game with Variable Jump Height")
