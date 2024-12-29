@@ -8,17 +8,17 @@ import (
 )
 
 const (
-	screenWidth    = 800
-	screenHeight   = 600
+	screenWidth    = 1280
+	screenHeight   = 720
 	playerWidth    = 50
 	playerHeight   = 80
 	platformHeight = 20
-	gravity        = 1.0
-	jumpSpeed      = -15.0
+	gravity        = 0.8
+	jumpSpeed      = -12.0
 	moveSpeed      = 5.0
 	swordWidth     = 80
 	swordHeight    = 20
-	minJumpSpeed   = -8.0 // Minimum jump speed when button is released quickly
+	minJumpSpeed   = -3.0 // Minimum jump speed when button is released quickly
 )
 
 type Game struct {
@@ -31,6 +31,7 @@ type Game struct {
 	jumpingFrame       int
 	isJumping          bool // New: tracks if player is currently jumping
 	jumpHeld           bool // New: tracks if jump button is being held
+	jumpKeyWasPressed  bool // New: tracks if jump button was previously pressed
 	swinging           bool
 	swingDuration      int
 	swingCooldown      int
@@ -50,10 +51,11 @@ func NewGame() *Game {
 		jumpingFrame:       0,
 		isJumping:          false,
 		jumpHeld:           false,
+		jumpKeyWasPressed:  false,
 		swinging:           false,
-		swingDuration:      ebiten.TPS() / 4,
-		swingCooldown:      ebiten.TPS() / 4,
-		maxJumpFrames:      ebiten.TPS() / 3,
+		swingDuration:      ebiten.TPS() / 4,                 // 15 / 60
+		swingCooldown:      ebiten.TPS() / 4,                 // 15 / 60
+		maxJumpFrames:      int(float64(ebiten.TPS()) / 1.2), // 40 / 60
 		swingCooldownFrame: 0,
 		swingFrame:         0,
 		frameLimit:         ebiten.TPS(),
@@ -72,24 +74,24 @@ func (g *Game) Update() error {
 	}
 
 	// Jump logic
-	if ebiten.IsKeyPressed(ebiten.KeyZ) {
-		if g.onGround {
-			// Initial jump
-			g.isJumping = true
-			g.jumpHeld = true
-			g.jumpingFrame = 0
-			g.playerVelY = jumpSpeed
-			g.onGround = false
-		} else if g.isJumping && g.jumpHeld {
-			// Continue jump while button is held
-			g.jumpingFrame++
-			if g.jumpingFrame < g.maxJumpFrames {
-				// Gradually reduce the upward force
-				g.playerVelY = jumpSpeed * float64(g.maxJumpFrames-g.jumpingFrame) /
-					float64(g.maxJumpFrames)
-			}
+	jumpKeyPressed := ebiten.IsKeyPressed(ebiten.KeyZ)
+
+	if jumpKeyPressed && !g.jumpKeyWasPressed && g.onGround {
+		// Initial jump only on key press (not hold)
+		g.isJumping = true
+		g.jumpHeld = true
+		g.jumpingFrame = 0
+		g.playerVelY = jumpSpeed
+		g.onGround = false
+	} else if jumpKeyPressed && g.isJumping && g.jumpHeld {
+		// Continue jump while button is held (variable height)
+		g.jumpingFrame++
+		if g.jumpingFrame < g.maxJumpFrames {
+			// Gradually reduce the upward force
+			g.playerVelY = jumpSpeed * float64(g.maxJumpFrames-g.jumpingFrame) /
+				float64(g.maxJumpFrames)
 		}
-	} else {
+	} else if !jumpKeyPressed {
 		// Jump button released
 		if g.isJumping && g.jumpHeld {
 			// Cut the jump short if released early
@@ -100,6 +102,8 @@ func (g *Game) Update() error {
 		g.jumpHeld = false
 		g.isJumping = false
 	}
+
+	g.jumpKeyWasPressed = jumpKeyPressed
 
 	// Sword swing
 	if ebiten.IsKeyPressed(ebiten.KeyX) && !g.swinging && g.swingCooldownFrame == 0 {
@@ -197,6 +201,7 @@ func main() {
 	println("Monitor refresh rate:", ebiten.TPS(), "Hz")
 	println("Swing Duration:", g.swingDuration, "frames")
 	println("Swing Cooldown:", g.swingCooldown, "frames")
+	println("Max Jump Frames:", g.maxJumpFrames, "frames")
 	if err := ebiten.RunGame(g); err != nil {
 		panic(err)
 	}

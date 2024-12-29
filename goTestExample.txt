@@ -1,0 +1,87 @@
+package main
+
+import (
+	"image/color"
+	"log"
+
+	"io/ioutil"
+	"os"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/basicfont"
+	"golang.org/x/image/font/opentype"
+)
+
+// Game represents the game state.
+type Game struct{}
+
+// Font to use for drawing text
+var mplusNormalFont font.Face
+
+// InitFont loads the font file or falls back to a default system font.
+func InitFont() {
+	// Check if a custom font file exists
+	fontFilePath := "your-font-file.ttf" // Replace with the path to your font file
+	if _, err := os.Stat(fontFilePath); os.IsNotExist(err) {
+		// Fallback to a default font
+		mplusNormalFont = basicfont.Face7x13
+		log.Println("Using default system font: basicfont.Face7x13")
+		return
+	}
+
+	// Load the custom font file
+	fontBytes, err := ioutil.ReadFile(fontFilePath)
+	if err != nil {
+		log.Fatalf("failed to read font file: %v", err)
+	}
+
+	ttf, err := opentype.Parse(fontBytes)
+	if err != nil {
+		log.Fatalf("failed to parse font: %v", err)
+	}
+
+	const dpi = 72
+	mplusNormalFont, err = opentype.NewFace(ttf, &opentype.FaceOptions{
+		Size:    24,
+		DPI:     dpi,
+		Hinting: font.HintingFull,
+	})
+	if err != nil {
+		log.Fatalf("failed to create font face: %v", err)
+	}
+
+	log.Println("Using custom font from file:", fontFilePath)
+}
+
+// Update is called every frame to update the game logic.
+func (g *Game) Update() error {
+	return nil
+}
+
+// Draw is called every frame to render the screen.
+func (g *Game) Draw(screen *ebiten.Image) {
+	// Background color
+	screen.Fill(color.RGBA{30, 30, 30, 255})
+
+	// Text to draw
+	text.Draw(screen, "Hello, Ebiten!", mplusNormalFont, 50, 100, color.White)
+}
+
+// Layout defines the screen layout.
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return 640, 480
+}
+
+func main() {
+	// Initialize the font
+	InitFont()
+
+	// Create a new game instance
+	ebiten.SetWindowSize(640, 480)
+	ebiten.SetWindowTitle("Ebiten Text Example with Default Font")
+	if err := ebiten.RunGame(&Game{}); err != nil {
+		log.Fatal(err)
+	}
+}
