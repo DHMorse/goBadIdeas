@@ -13,7 +13,7 @@ const (
 	playerWidth    = 50
 	playerHeight   = 80
 	platformHeight = 20
-	gravity        = 0.8
+	gravity        = 0.9
 	jumpSpeed      = -12.0
 	moveSpeed      = 5.0
 	swordWidth     = 80
